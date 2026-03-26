@@ -251,12 +251,12 @@ function upd(){
     dotVis.forEach(function(q){
       var xy=pj([q.lo,q.la]),cx=xy[0],cy=xy[1];
       var age=y-q.y;
-      var dotAlpha=Math.max(0.25,1-age/250);
-      var dotR=Math.max(2.5,Math.min(8,Math.sqrt(q.m-4)*3));
+      var dotAlpha=Math.max(0.45,1-age/200);
+      var dotR=Math.max(3.5,Math.min(9,Math.sqrt(q.m-4)*3));
       var mainColor=q.c.w>=0.5?'#378ADD':q.c.f>=0.5?'#EF9F27':'#E24B4A';
       gDots.append('circle').attr('cx',cx).attr('cy',cy).attr('r',dotR)
-        .attr('fill',mainColor).attr('fill-opacity',dotAlpha*0.85)
-        .attr('stroke',mainColor).attr('stroke-width',0.5).attr('stroke-opacity',dotAlpha*0.5);
+        .attr('fill',mainColor).attr('fill-opacity',dotAlpha*0.9)
+        .attr('stroke',mainColor).attr('stroke-width',0.8).attr('stroke-opacity',dotAlpha*0.7);
     });
   }
   vis.forEach(function(q){
