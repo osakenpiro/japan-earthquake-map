@@ -123,7 +123,7 @@ var CK={b:'#E24B4A',w:'#378ADD',f:'#EF9F27',o:'#97C459'};
 var CN={b:'倒壊',w:'津波',f:'火災',o:'他'};
 var isMobile='ontouchstart' in window;
 var cY=2026,pl=false,tm=null;
-var DOT_YEARS=30;
+var DOT_YEARS=999;
 var RING_YEARS=15;
 
 function sn(v){if(v===null||v===undefined||v==='-')return 0;var n=parseFloat(v);return isNaN(n)?0:n;}
@@ -251,8 +251,8 @@ function upd(){
     dotVis.forEach(function(q){
       var xy=pj([q.lo,q.la]),cx=xy[0],cy=xy[1];
       var age=y-q.y;
-      var dotAlpha=Math.max(0.15,1-age/DOT_YEARS);
-      var dotR=Math.max(2,Math.min(6,Math.sqrt(q.m-5)*3));
+      var dotAlpha=Math.max(0.12,1-age/150);
+      var dotR=Math.max(2.5,Math.min(8,Math.sqrt(q.m-4)*3));
       var mainColor=q.c.w>=0.5?'#378ADD':q.c.f>=0.5?'#EF9F27':'#E24B4A';
       gDots.append('circle').attr('cx',cx).attr('cy',cy).attr('r',dotR)
         .attr('fill',mainColor).attr('fill-opacity',dotAlpha*0.7)
@@ -265,7 +265,7 @@ function upd(){
     var al=Math.max(0,1-dist/RING_YEARS);
     if(al<=0)return;
     var ar=k2p(q.km,q.la);
-    gA.append('circle').attr('cx',cx).attr('cy',cy).attr('r',ar*al)
+    gA.append('circle').attr('cx',cx).attr('cy',cy).attr('r',ar)
       .attr('fill','none')
       .attr('stroke',dk?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.1)')
       .attr('stroke-width',0.8).attr('stroke-dasharray','4,3')
