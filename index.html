@@ -246,16 +246,16 @@ function upd(){
   gDots.selectAll('*').remove();
   var showDots=document.getElementById('chkDots').checked;
   var vis=Q.filter(function(q){return Math.abs(q.y-y)<=RING_YEARS;}).sort(function(a,b){return b.d-a.d;});
-  var dotVis=Q.filter(function(q){return q.y<=y && (y-q.y)<=DOT_YEARS;});
+  var dotVis=Q.filter(function(q){return q.y<=y;});
   if(showDots){
     dotVis.forEach(function(q){
       var xy=pj([q.lo,q.la]),cx=xy[0],cy=xy[1];
       var age=y-q.y;
-      var dotAlpha=Math.max(0.12,1-age/150);
+      var dotAlpha=Math.max(0.25,1-age/250);
       var dotR=Math.max(2.5,Math.min(8,Math.sqrt(q.m-4)*3));
       var mainColor=q.c.w>=0.5?'#378ADD':q.c.f>=0.5?'#EF9F27':'#E24B4A';
       gDots.append('circle').attr('cx',cx).attr('cy',cy).attr('r',dotR)
-        .attr('fill',mainColor).attr('fill-opacity',dotAlpha*0.7)
+        .attr('fill',mainColor).attr('fill-opacity',dotAlpha*0.85)
         .attr('stroke',mainColor).attr('stroke-width',0.5).attr('stroke-opacity',dotAlpha*0.5);
     });
   }
