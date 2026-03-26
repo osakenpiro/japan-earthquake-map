@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日本地震マップ — 歴史と未来の震災を可視化</title>
+<meta property="og:title" content="日本地震マップ — 歴史と未来の震災を可視化">
+<meta property="og:description" content="1850年〜2060年の日本の主要地震を三重同心円で可視化。死因内訳・死者数・経済被害・将来予測をインタラクティブに探索。">
+<meta property="og:url" content="https://osakenpiro.github.io/japan-earthquake-map/">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://osakenpiro.github.io/japan-earthquake-map/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#fff;--bg2:#f5f4f0;--tx:#1a1a1a;--tx2:#666;--tx3:#999;--bd:#ddd;
+  --card-bg:#fff;--area-stroke:rgba(0,0,0,0.1);
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1a1a;--bg2:#242422;--tx:#eee;--tx2:#aaa;--tx3:#777;--bd:#444;
+    --card-bg:#242422;--area-stroke:rgba(255,255,255,0.12);
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
+.wrap{max-width:760px;margin:0 auto;padding:12px 16px 40px;}
+h1{font-size:18px;font-weight:500;margin:0 0 4px;letter-spacing:0.02em;}
+.sub{font-size:12px;color:var(--tx2);margin:0 0 14px;}
+.ctrl{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap;}
+.ctrl label{font-size:13px;color:var(--tx2);white-space:nowrap;}
+.ctrl input[type=range]{flex:1;min-width:140px;height:6px;-webkit-appearance:none;appearance:none;background:var(--bd);border-radius:3px;outline:none;}
+.ctrl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--tx);cursor:pointer;}
+.ctrl input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--tx);cursor:pointer;border:none;}
+#yv{font-size:16px;font-weight:500;min-width:40px;text-align:center;}
+#pb{font-size:12px;padding:5px 16px;background:none;border:1px solid var(--bd);border-radius:6px;color:var(--tx);cursor:pointer;transition:background 0.15s;}
+#pb:hover{background:var(--bg2);}
+#pb:active{transform:scale(0.97);}
+.leg{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 3px;font-size:11px;color:var(--tx2);align-items:center;}
+.leg b{font-weight:500;font-size:11px;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;}
+.leg2{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px;font-size:11px;color:var(--tx2);align-items:center;}
+#mp{width:100%;}
+#tt{position:fixed;display:none;background:var(--card-bg);border:1px solid var(--bd);border-radius:10px;padding:12px 16px;font-size:12px;pointer-events:none;z-index:100;max-width:300px;line-height:1.7;box-shadow:0 4px 20px rgba(0,0,0,0.12);}
+.src{font-size:10px;color:var(--tx3);margin:12px 0 0;line-height:1.6;}
+.src a{color:var(--tx3);}
+.ft{font-size:11px;color:var(--tx3);margin:20px 0 0;text-align:center;}
+.ft a{color:var(--tx2);text-decoration:none;}
+@media(max-width:500px){
+  h1{font-size:15px;}
+  .ctrl{gap:6px;}
+  .leg,.leg2{gap:5px;font-size:10px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>日本地震マップ</h1>
+<p class="sub">1850〜2060年 — 三重同心円で震災の規模を可視化</p>
+<div class="ctrl">
+  <label>年代</label>
+  <input type="range" min="1850" max="2060" value="2026" step="1" id="ys">
+  <span id="yv">2026</span>
+  <button id="pb">再生</button>
+</div>
+<div class="leg">
+  <b>死因:</b>
+  <span><span class="dot" style="background:#E24B4A;"></span> 倒壊</span>
+  <span><span class="dot" style="background:#378ADD;"></span> 津波</span>
+  <span><span class="dot" style="background:#EF9F27;"></span> 火災</span>
+  <span><span class="dot" style="background:#97C459;"></span> 他</span>
+</div>
+<div class="leg2">
+  <b>リング:</b>
+  <span>内 = 死因</span>
+  <span style="color:#D85A30;">中 = 死者数</span>
+  <span style="color:#378ADD;">外 = 経済被害</span>
+  <span style="color:var(--tx3);">|</span>
+  <span>点線 = 被害範囲</span>
+  <span style="color:#BA7517;">破線 = 将来予測</span>
+</div>
+<div id="mp"></div>
+<p class="src">
+  出典: 気象庁「過去の地震津波災害」、内閣府「防災情報」、Wikipedia「日本の地震年表」<br>
+  将来予測: 地震調査研究推進本部（30年以内の発生確率）、内閣府被害想定。数値は推定値を含みます。
+</p>
+<div class="ft"><a href="https://osakenpiro.github.io/boku-no-wakusei/" target="_blank">osakenpiro</a> / #全人類UX改善計画</div>
+</div>
+<div id="tt"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+(function(){
+var PP="M0,-4.5 A2,2,0,1,1,-0.01,-4.5 M-2.2,0 L-3.5,7.5 L-1.2,5.5 L0,8 L1.2,5.5 L3.5,7.5 L2.2,0 Z";
+
+var Q=[
+{n:"安政江戸地震",y:1855,la:35.65,lo:139.8,m:7.0,d:7000,t:0,km:30,c:{b:.8,w:0,f:.15,o:.05}},
+{n:"濃尾地震",y:1891,la:35.6,lo:136.6,m:8.0,d:7273,t:0,km:80,c:{b:.7,w:0,f:.2,o:.1}},
+{n:"明治三陸地震",y:1896,la:39.5,lo:144.0,m:8.2,d:21959,t:0,km:200,c:{b:.02,w:.95,f:0,o:.03}},
+{n:"関東大震災",y:1923,la:35.3,lo:139.1,m:7.9,d:105000,t:6.5,km:100,c:{b:.1,w:.01,f:.87,o:.02}},
+{n:"昭和三陸地震",y:1933,la:39.2,lo:144.5,m:8.1,d:3064,t:0,km:180,c:{b:.05,w:.9,f:0,o:.05}},
+{n:"鳥取地震",y:1943,la:35.5,lo:134.1,m:7.2,d:1083,t:0,km:25,c:{b:.85,w:0,f:.1,o:.05}},
+{n:"東南海地震",y:1944,la:33.8,lo:136.6,m:7.9,d:1223,t:0,km:150,c:{b:.6,w:.3,f:.05,o:.05}},
+{n:"三河地震",y:1945,la:34.7,lo:137.1,m:6.8,d:2306,t:0,km:20,c:{b:.9,w:0,f:.05,o:.05}},
+{n:"南海地震",y:1946,la:33.0,lo:135.6,m:8.0,d:1330,t:0,km:200,c:{b:.4,w:.5,f:.05,o:.05}},
+{n:"福井地震",y:1948,la:36.2,lo:136.2,m:7.1,d:3769,t:0,km:25,c:{b:.75,w:0,f:.2,o:.05}},
+{n:"阪神・淡路大震災",y:1995,la:34.6,lo:135.0,m:7.3,d:6434,t:9.9,km:40,c:{b:.77,w:0,f:.1,o:.13}},
+{n:"新潟県中越地震",y:2004,la:37.3,lo:138.9,m:6.8,d:68,t:3.0,km:30,c:{b:.5,w:0,f:0,o:.5}},
+{n:"東日本大震災",y:2011,la:38.1,lo:142.9,m:9.0,d:22332,t:16.9,km:500,c:{b:.05,w:.9,f:.01,o:.04}},
+{n:"熊本地震",y:2016,la:32.75,lo:130.76,m:7.3,d:273,t:3.8,km:35,c:{b:.6,w:0,f:0,o:.4}},
+{n:"能登半島地震",y:2024,la:37.5,lo:137.3,m:7.6,d:489,t:2.6,km:50,c:{b:.5,w:.15,f:.1,o:.25}}
+];
+
+var PD=[
+{n:"南海トラフ巨大地震",la:33.0,lo:136.0,p:"70-80%",de:323000,te:169.5,mg:"M8-9"},
+{n:"首都直下地震",la:35.6,lo:139.7,p:"70%",de:23000,te:95.3,mg:"M7.3"},
+{n:"千島海溝地震",la:42.0,lo:145.0,p:"7-40%",de:199000,te:31.3,mg:"M8.8+"}
+];
+
+var dk=matchMedia('(prefers-color-scheme:dark)').matches;
+var W=700,H=780;
+var pj=d3.geoMercator().center([137,37]).scale(1600).translate([W/2,H/2]);
+var pa=d3.geoPath(pj);
+var s=d3.select('#mp').append('svg').attr('viewBox','0 0 '+W+' '+H).attr('width','100%').style('display','block');
+var gM=s.append('g'),gA=s.append('g'),gP=s.append('g'),gQ=s.append('g');
+var tt=document.getElementById('tt');
+var CK={b:'#E24B4A',w:'#378ADD',f:'#EF9F27',o:'#97C459'};
+var CN={b:'倒壊',w:'津波',f:'火災',o:'他'};
+
+function k2p(km,la){var p1=pj([137,la]),p2=pj([137+km/111.32/Math.cos(la*Math.PI/180),la]);return Math.abs(p2[0]-p1[0]);}
+function pr(d){return Math.min(44,Math.max(16,Math.sqrt(d)*0.12));}
+function drR(d,p){return p+4+Math.sqrt(d)*0.09;}
+function erR(t,r){return t>0?r+5+Math.sqrt(t)*5:0;}
+function ppR(d){return Math.min(50,Math.max(20,Math.sqrt(d)*0.08));}
+function fD(n){return n>=10000?(n/10000).toFixed(1)+'\u4E07':n>=1000?Math.round(n/1000)+'\u5343':''+n;}
+
+var cY=2026,pl=false,tm=null;
+var isMobile='ontouchstart' in window;
+
+function showTT(html,ex,ey){
+  tt.innerHTML=html;
+  tt.style.display='block';
+  var tw=tt.offsetWidth,th=tt.offsetHeight;
+  var vw=window.innerWidth,vh=window.innerHeight;
+  var lx=ex+14,ly=ey-24;
+  if(lx+tw>vw-10)lx=ex-tw-14;
+  if(ly<10)ly=ey+14;
+  if(ly+th>vh-10)ly=vh-th-10;
+  tt.style.left=lx+'px';tt.style.top=ly+'px';
+}
+function hideTT(){tt.style.display='none';}
+
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json').then(function(w){
+  var ft=topojson.feature(w,w.objects.countries).features;
+  var jp=ft.find(function(f){return f.id==='392';});
+  if(jp)gM.append('path').datum(jp).attr('d',pa).attr('fill',dk?'#2C2C2A':'#F1EFE8').attr('stroke',dk?'#5F5E5A':'#B4B2A9').attr('stroke-width',0.5);
+  ft.filter(function(f){return ['410','156','643','408','158'].indexOf(f.id)>=0;}).forEach(function(f){
+    gM.append('path').datum(f).attr('d',pa).attr('fill',dk?'#1e1e1c':'#e8e6df').attr('stroke',dk?'#444':'#ccc').attr('stroke-width',0.3);
+  });
+  upd();
+});
+
+function getEntries(c){
+  var e=[];
+  if(c.b>0)e.push(['b',c.b]);
+  if(c.w>0)e.push(['w',c.w]);
+  if(c.f>0)e.push(['f',c.f]);
+  if(c.o>0)e.push(['o',c.o]);
+  return e;
+}
+
+function ttHTML(q){
+  var entries=getEntries(q.c);
+  var cs=entries.map(function(e){return '<span style="color:'+CK[e[0]]+'">'+CN[e[0]]+' '+Math.round(e[1]*100)+'%</span>';}).join('&ensp;');
+  return '<div style="font-weight:500;font-size:15px;margin-bottom:2px;">'+q.n+'</div>'
+    +'<div style="color:var(--tx2);margin-bottom:6px;">'+q.y+'\u5E74 / M'+q.m+' / \u88AB\u5BB3\u534A\u5F84 \u7D04'+q.km+'km</div>'
+    +'<div style="font-size:14px;font-weight:500;color:#D85A30;margin-bottom:3px;">\u6B7B\u8005 '+q.d.toLocaleString()+'\u4EBA</div>'
+    +(q.t?'<div style="font-size:14px;font-weight:500;color:#185FA5;">\u7D4C\u6E08\u88AB\u5BB3 \u7D04'+q.t+'\u5146\u5186</div>':'')
+    +'<div style="margin-top:6px;border-top:1px solid var(--bd);padding-top:6px;">\u6B7B\u56E0: '+cs+'</div>';
+}
+
+function drawQ(cx,cy,q,al){
+  var g=gQ.append('g').attr('opacity',al);
+  var p=pr(q.d),dr=drR(q.d,p),er=q.t>0?erR(q.t,dr):0,om=er||dr;
+
+  if(er>0){
+    g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',er)
+      .attr('fill','rgba(55,138,221,0.06)').attr('stroke','#378ADD').attr('stroke-width',2.2).attr('stroke-opacity',0.7);
+  }
+  g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',dr)
+    .attr('fill','rgba(216,90,48,0.07)').attr('stroke','#D85A30').attr('stroke-width',1.8).attr('stroke-opacity',0.6);
+
+  var sa=-Math.PI/2;
+  var entries=getEntries(q.c);
+  entries.forEach(function(e){
+    var ea=sa+e[1]*2*Math.PI;
+    g.append('path').attr('d',d3.arc().innerRadius(0).outerRadius(p).startAngle(sa).endAngle(ea)())
+      .attr('transform','translate('+cx+','+cy+')').attr('fill',CK[e[0]]).attr('fill-opacity',0.85);
+    sa=ea;
+  });
+  g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',p)
+    .attr('fill','none').attr('stroke',dk?'rgba(255,255,255,0.2)':'rgba(0,0,0,0.12)').attr('stroke-width',0.5);
+
+  g.append('text').attr('x',cx).attr('y',cy-om-15).attr('text-anchor','middle')
+    .attr('font-size','11px').attr('font-weight','500').attr('fill',dk?'#eee':'#1a1a1a')
+    .attr('font-family','-apple-system,sans-serif')
+    .text(q.n+' ('+q.y+')');
+  g.append('text').attr('x',cx).attr('y',cy-om-4).attr('text-anchor','middle')
+    .attr('font-size','10px').attr('fill',dk?'#bbb':'#666')
+    .attr('font-family','-apple-system,sans-serif')
+    .text('M'+q.m);
+
+  g.append('path').attr('d',PP)
+    .attr('transform','translate('+(cx+dr+4)+','+(cy-5)+') scale(0.55)')
+    .attr('fill','#D85A30').attr('fill-opacity',0.9);
+  g.append('text').attr('x',cx+dr+12).attr('y',cy-1)
+    .attr('font-size','9.5px').attr('font-weight','500')
+    .attr('fill',dk?'#F0997B':'#993C1D')
+    .attr('font-family','-apple-system,sans-serif')
+    .text(fD(q.d)+'\u4EBA');
+
+  if(er>0){
+    g.append('text').attr('x',cx+er+3).attr('y',cy+13)
+      .attr('font-size','10px').attr('font-weight','500')
+      .attr('fill',dk?'#85B7EB':'#185FA5')
+      .attr('font-family','-apple-system,sans-serif')
+      .text('\u00A5'+q.t+'\u5146\u5186');
+  }
+
+  var hit=g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',om+8)
+    .attr('fill','none').attr('stroke','none').style('pointer-events','all').style('cursor','pointer');
+
+  if(isMobile){
+    hit.on('touchstart',function(ev){
+      ev.preventDefault();
+      var touch=ev.touches[0]||ev.changedTouches[0];
+      showTT(ttHTML(q),touch.clientX,touch.clientY);
+      setTimeout(hideTT,3000);
+    });
+  }else{
+    hit.on('mouseenter',function(ev){showTT(ttHTML(q),ev.clientX,ev.clientY);})
+      .on('mousemove',function(ev){showTT(ttHTML(q),ev.clientX,ev.clientY);})
+      .on('mouseleave',hideTT);
+  }
+}
+
+function drawPR(d){
+  var xy=pj([d.lo,d.la]),cx=xy[0],cy=xy[1];
+  var g=gP.append('g');
+  var p=ppR(d.de),dr=p+4+Math.sqrt(d.de)*0.035,er=dr+5+Math.sqrt(d.te)*3.5;
+
+  g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',er)
+    .attr('fill','rgba(186,117,23,0.03)')
+    .attr('stroke','#BA7517').attr('stroke-width',2).attr('stroke-dasharray','8,5').attr('stroke-opacity',0.5);
+  g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',dr)
+    .attr('fill','rgba(186,117,23,0.05)')
+    .attr('stroke','#BA7517').attr('stroke-width',1.5).attr('stroke-dasharray','5,3').attr('stroke-opacity',0.45);
+  g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',p)
+    .attr('fill','rgba(186,117,23,0.1)')
+    .attr('stroke','#BA7517').attr('stroke-width',1.2).attr('stroke-dasharray','3,2').attr('stroke-opacity',0.6);
+
+  g.append('text').attr('x',cx).attr('y',cy-er-14).attr('text-anchor','middle')
+    .attr('font-size','12px').attr('font-weight','500')
+    .attr('fill',dk?'#FAC775':'#854F0B')
+    .attr('font-family','-apple-system,sans-serif')
+    .text(d.n+' ('+d.p+')');
+  g.append('text').attr('x',cx).attr('y',cy-er-3).attr('text-anchor','middle')
+    .attr('font-size','10px')
+    .attr('fill',dk?'#ddd':'#633806')
+    .attr('font-family','-apple-system,sans-serif')
+    .text(d.mg);
+
+  g.append('path').attr('d',PP)
+    .attr('transform','translate('+(cx+dr+4)+','+(cy-5)+') scale(0.5)')
+    .attr('fill','#BA7517').attr('fill-opacity',0.8);
+  g.append('text').attr('x',cx+dr+12).attr('y',cy-1)
+    .attr('font-size','9.5px').attr('font-weight','500')
+    .attr('fill',dk?'#FAC775':'#854F0B')
+    .attr('font-family','-apple-system,sans-serif')
+    .text(fD(d.de)+'\u4EBA');
+  g.append('text').attr('x',cx+er+3).attr('y',cy+13)
+    .attr('font-size','10px').attr('font-weight','500')
+    .attr('fill',dk?'#FAC775':'#BA7517')
+    .attr('font-family','-apple-system,sans-serif')
+    .text('\u00A5'+d.te+'\u5146\u5186');
+}
+
+function upd(){
+  var y=cY;
+  gQ.selectAll('*').remove();
+  gP.selectAll('*').remove();
+  gA.selectAll('*').remove();
+
+  var vis=Q.filter(function(q){return Math.abs(q.y-y)<=15;}).sort(function(a,b){return b.d-a.d;});
+  vis.forEach(function(q){
+    var xy=pj([q.lo,q.la]),cx=xy[0],cy=xy[1];
+    var dist=Math.abs(q.y-y);
+    var al=Math.max(0,1-dist/15);
+    if(al<=0)return;
+
+    var ar=k2p(q.km,q.la);
+    gA.append('circle').attr('cx',cx).attr('cy',cy).attr('r',ar)
+      .attr('fill','none')
+      .attr('stroke',dk?'rgba(255,255,255,0.12)':'rgba(0,0,0,0.1)')
+      .attr('stroke-width',0.8).attr('stroke-dasharray','4,3')
+      .attr('opacity',al);
+
+    drawQ(cx,cy,q,al);
+  });
+
+  if(y>=2025){
+    PD.forEach(function(d){drawPR(d);});
+  }
+}
+
+var sl=document.getElementById('ys');
+var yv=document.getElementById('yv');
+sl.addEventListener('input',function(){cY=+this.value;yv.textContent=cY;upd();});
+
+document.getElementById('pb').addEventListener('click',function(){
+  if(pl){pl=false;this.textContent='\u518D\u751F';clearInterval(tm);return;}
+  pl=true;this.textContent='\u505C\u6B62';
+  sl.value=1850;cY=1850;yv.textContent='1850';
+  tm=setInterval(function(){
+    cY+=2;
+    if(cY>2060){cY=2060;pl=false;document.getElementById('pb').textContent='\u518D\u751F';clearInterval(tm);}
+    sl.value=cY;yv.textContent=cY;upd();
+  },120);
+});
+
+document.addEventListener('click',function(ev){
+  if(!tt.contains(ev.target)&&ev.target.tagName!=='circle'){hideTT();}
+});
+})();
+</script>
+</body>
+</html>
